@@ -32,6 +32,14 @@ def create_app(test_config=None):
     Create an endpoint to handle GET requests
     for all available categories.
     """
+    @app.route('/categories')
+    def get_categories():
+        categories = Category.query.all()
+        if categories is None:
+                abort(400)
+        else:
+            categories = { str(category.id): category.type for category in categories }
+            return jsonify({'categories': categories})
 
 
     """
@@ -103,6 +111,13 @@ def create_app(test_config=None):
     Create error handlers for all expected errors
     including 404 and 422.
     """
+    @app.errorhandler(400)
+    def not_there(error):
+        return jsonify({
+            "success": False, 
+            "error": 400,
+            "message": "Bad request",
+            }), 400
 
     return app
 
