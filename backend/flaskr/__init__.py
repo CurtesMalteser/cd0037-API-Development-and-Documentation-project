@@ -1,58 +1,8 @@
-from operator import is_not
 from flask import Flask, request, abort, jsonify
 from flask_cors import CORS
 
-from models import setup_db, Question, Category
-
-QUESTIONS_PER_PAGE = 10
-
-def get_categories_or_none():
-        categories = Category.query.all()
-
-        if is_not(None, categories):
-            return { str(category.id): category.type for category in categories }
-        else:
-            return None
-
-def paginate_questions_or_none(request):
-    page = request.args.get('page', 1, type=int)
-    
-    start = (page - 1) * QUESTIONS_PER_PAGE
-    end = start + QUESTIONS_PER_PAGE
-
-    questions = []
-    
-    try:
-        questions = Question.query.order_by(Question.id).all()
-    except:
-        abort(500)
-
-    if questions is None:
-        abort(400)
-
-    total_questions = len(questions)
-
-    questions = map(lambda  question: question.format(), questions)
-    questions = list(questions)[start:end]
-
-    categories = get_categories_or_none()
-
-    if categories is None:
-        abort(400)
-
-    if len(questions) > 0:
-        return jsonify({
-            'success': True,
-            'questions': questions,
-            'total_questions': total_questions,
-            'categories': categories#,
-            # 'currentCategory': "Science",  todo: fill with selected
-            # -> extract the dic and add if it's a request with a selected category
-            # -> pass query as args or bassed on existence of category arg, run proper query
-            # -> either all or select by category
-            })
-    else:
-        return None
+from models import setup_db
+from request_utils import *
 
 def create_app(test_config=None):
     # create and configure the app
@@ -92,7 +42,6 @@ def create_app(test_config=None):
             
 
     """
-    @TODO:
     Create an endpoint to handle GET requests for questions,
     including pagination (every 10 questions).
     This endpoint should return a list of questions,
@@ -144,13 +93,20 @@ def create_app(test_config=None):
     """
 
     """
-    @TODO:
     Create a GET endpoint to get questions based on category.
 
     TEST: In the "List" tab / main screen, clicking on one of the
     categories in the left column will cause only questions of that
     category to be shown.
     """
+    @app.route('/categories/<int:id>/questions')
+    def get_questions_by_category(id: int):
+        questions = paginate_questions_or_none(request, category_id=id)
+    
+        if questions is None:
+            abort(404)
+        else:
+            return questions
 
     """
     @TODO:

@@ -6,6 +6,7 @@ username = os.environ.get('USER', os.environ.get('USERNAME'))
 database_name = "trivia_test"
 database_path = "postgresql://{}:{}@{}/{}".format(username, username,'localhost:5432', database_name)
 
+from models import db, Question
 
 class TriviaTestCase(unittest.TestCase):
     """This class represents the trivia test case"""
@@ -29,7 +30,7 @@ class TriviaTestCase(unittest.TestCase):
     TODO
     Write at least one test for each test for successful operation and for expected errors.
     """
-    def test_get_books_success(self):
+    def test_get_categories_success(self):
         res = self.client().get('/categories')
 
         self.assertEqual(200, res.status_code)
@@ -40,6 +41,7 @@ class TriviaTestCase(unittest.TestCase):
     def test_get_questions_success(self):
         res = self.client().get('/questions?page=1')
 
+
         self.assertEqual(200, res.status_code)
         json = res.get_json()
 
@@ -47,14 +49,44 @@ class TriviaTestCase(unittest.TestCase):
         self.assert_categories_equal(json)
         self.assertEqual(10, len(json.get('questions')))
         self.assertEqual(19, json.get('total_questions'))
+        self.assertEqual(0, json.get('current_category'))
 
     def test_get_questions_404_due_to_page_100_not_found(self):
         res = self.client().get('/questions?page=100')
+        self.assert_404_true(res)
 
-        self.assertEqual(404, res.status_code)
+    def test_get_questions_by_category_success(self):
+        expected_category_sport=6
+        res = self.client().get('/categories/{}/questions'.format(expected_category_sport))
+
+        self.assertEqual(200, res.status_code)
+        json = res.get_json()
+
+        self.assertTrue(json.get('success'))
+        self.assert_categories_equal(json)
+        self.assertEqual(2, len(json.get('questions')))
+        self.assertEqual(2, json.get('total_questions'))
+        self.assertEqual(expected_category_sport, json.get('current_category'))
+
+    def test_get_questions_by_category_400_due_to_non_existing_category(self):
+        res = self.client().get('/categories/{}/questions'.format(20))
+        self.assertEqual(400, res.status_code)
+
         json = res.get_json()
         self.assertFalse(json.get('success'))
+        self.assertEqual('Bad request', json.get('message'))
 
+
+    def test_get_questions_by_category_404_no_questions_for_category(self):
+        category_id = 1
+        db.session.query(Question).filter(Question.category == category_id).delete()
+
+        res = self.client().get('/categories/{}/questions'.format(1))
+
+        db.session.commit()
+        db.session.close()
+
+        self.assert_404_true(res)
 
     # Helper function to assert all categories are in the json response
     def assert_categories_equal(self, json):
@@ -71,6 +103,11 @@ class TriviaTestCase(unittest.TestCase):
 
         self.assertEqual(expected_categories, actual_categories)
 
+    def assert_404_true(self, res):
+        self.assertEqual(404, res.status_code)
+        json = res.get_json()
+        self.assertFalse(json.get('success'))
+        self.assertEqual('Not found', json.get('message'))
 
 # Make the tests conveniently executable
 if __name__ == "__main__":
