@@ -1,17 +1,68 @@
-import os
+from operator import is_not
 from flask import Flask, request, abort, jsonify
-from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
-import random
 
 from models import setup_db, Question, Category
 
 QUESTIONS_PER_PAGE = 10
 
+def get_categories_or_none():
+        categories = Category.query.all()
+
+        if is_not(None, categories):
+            return { str(category.id): category.type for category in categories }
+        else:
+            return None
+
+def paginate_questions_or_none(request):
+    page = request.args.get('page', 1, type=int)
+    
+    start = (page - 1) * QUESTIONS_PER_PAGE
+    end = start + QUESTIONS_PER_PAGE
+
+    questions = []
+    
+    try:
+        questions = Question.query.order_by(Question.id).all()
+    except:
+        abort(500)
+
+    if questions is None:
+        abort(400)
+
+    total_questions = len(questions)
+
+    questions = map(lambda  question: question.format(), questions)
+    questions = list(questions)[start:end]
+
+    categories = get_categories_or_none()
+
+    if categories is None:
+        abort(400)
+
+    if len(questions) > 0:
+        return jsonify({
+            'success': True,
+            'questions': questions,
+            'total_questions': total_questions,
+            'categories': categories#,
+            # 'currentCategory': "Science",  todo: fill with selected
+            # -> extract the dic and add if it's a request with a selected category
+            # -> pass query as args or bassed on existence of category arg, run proper query
+            # -> either all or select by category
+            })
+    else:
+        return None
+
 def create_app(test_config=None):
     # create and configure the app
     app = Flask(__name__)
-    setup_db(app)
+
+    if test_config is None:
+        setup_db(app)
+    else:
+        database_path = str(test_config.get('SQLALCHEMY_DATABASE_URI'))
+        setup_db(app, database_path = database_path)
 
     """
     @Set up CORS. Allow '*' for origins. Delete the sample route after completing the TODOs
@@ -19,7 +70,7 @@ def create_app(test_config=None):
     cors = CORS(app, resources={r"*": {"origins": "*"}})
 
     """
-    @Use the after_request decorator to set Access-Control-Allow
+    Use the after_request decorator to set Access-Control-Allow
     """
     @app.after_request
     def after_request(response):
@@ -28,19 +79,17 @@ def create_app(test_config=None):
         return response
 
     """
-    @TODO:
     Create an endpoint to handle GET requests
     for all available categories.
     """
     @app.route('/categories')
     def get_categories():
-        categories = Category.query.all()
+        categories = get_categories_or_none()
         if categories is None:
                 abort(400)
         else:
-            categories = { str(category.id): category.type for category in categories }
             return jsonify({'categories': categories})
-
+            
 
     """
     @TODO:
@@ -54,6 +103,15 @@ def create_app(test_config=None):
     ten questions per page and pagination at the bottom of the screen for three pages.
     Clicking on the page numbers should update the questions.
     """
+    @app.route('/questions')
+    def get_questions():
+        questions = paginate_questions_or_none(request)
+    
+        if questions is None:
+            abort(404)
+        else:
+            return questions
+            
 
     """
     @TODO:
@@ -118,6 +176,22 @@ def create_app(test_config=None):
             "error": 400,
             "message": "Bad request",
             }), 400
+
+    @app.errorhandler(404)
+    def not_found(error):
+        return jsonify({
+            "success": False, 
+            "error": 404,
+            "message": "Not found",
+            }), 404
+ 
+    @app.errorhandler(500)
+    def internal_error(error):
+        return jsonify({
+            "success": False, 
+            "error": 500,
+            "message": "Internal Server Error",
+            }), 500
 
     return app
 

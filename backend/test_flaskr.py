@@ -1,32 +1,25 @@
-import subprocess
 import unittest
-import json
-from flask_sqlalchemy import SQLAlchemy
-
 from flaskr import create_app
-from models import setup_db, Question, Category, db
+
+import os
+username = os.environ.get('USER', os.environ.get('USERNAME'))
+database_name = "trivia_test"
+database_path = "postgresql://{}:{}@{}/{}".format(username, username,'localhost:5432', database_name)
 
 
 class TriviaTestCase(unittest.TestCase):
     """This class represents the trivia test case"""
 
     def setUp(self):
-        """Populates trivia_test db."""
-        subprocess.run(["psql trivia_test < trivia.psql"], shell = True)
-
         """Define test variables and initialize app."""
-        self.app = create_app()
-        self.client = self.app.test_client
-        self.database_name = "trivia_test"
-        self.database_path = "postgresql://{}/{}".format('localhost:5432', self.database_name)
-        setup_db(self.app, self.database_path)
+        self.database_name = database_name
+        self.database_path = database_path
+        
+        self.app = create_app({
+            "SQLALCHEMY_DATABASE_URI": self.database_path
+        })
 
-        # binds the app to the current context
-        with self.app.app_context():
-            self.db = SQLAlchemy()
-            self.db.init_app(self.app)
-            # create all tables
-            self.db.create_all()
+        self.client = self.app.test_client
     
     def tearDown(self):
         """Executed after reach test"""
@@ -42,6 +35,29 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(200, res.status_code)
         json = res.get_json()
 
+        self.assert_categories_equal(json)
+
+    def test_get_questions_success(self):
+        res = self.client().get('/questions?page=1')
+
+        self.assertEqual(200, res.status_code)
+        json = res.get_json()
+
+        self.assertTrue(json.get('success'))
+        self.assert_categories_equal(json)
+        self.assertEqual(10, len(json.get('questions')))
+        self.assertEqual(19, json.get('total_questions'))
+
+    def test_get_questions_404_due_to_page_100_not_found(self):
+        res = self.client().get('/questions?page=100')
+
+        self.assertEqual(404, res.status_code)
+        json = res.get_json()
+        self.assertFalse(json.get('success'))
+
+
+    # Helper function to assert all categories are in the json response
+    def assert_categories_equal(self, json):
         actual_categories = json.get('categories')
 
         expected_categories = {
@@ -54,6 +70,7 @@ class TriviaTestCase(unittest.TestCase):
             }
 
         self.assertEqual(expected_categories, actual_categories)
+
 
 # Make the tests conveniently executable
 if __name__ == "__main__":
