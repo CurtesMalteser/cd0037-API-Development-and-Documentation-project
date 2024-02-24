@@ -104,11 +104,11 @@ class TriviaTestCase(unittest.TestCase):
         res = self.client().post('/questions', data='{"searchTerm": "tom"}')
         self.assert_400_true(res)
 
-    def test_search_questions_404_questions_found_for_given_search_term(self):
+    def test_search_questions_404_questions_not_found_for_given_search_term(self):
         res = self.client().post('/questions', data='{"searchTerm": "noSearchTermMatches"}', content_type='application/json')
         self.assert_404_true(res)
 
-    def test_search_questions_422_questions_found_for_given_search_term(self):
+    def test_search_questions_422_questions_not_found_for_given_search_term(self):
         res = self.client().post('/questions', data='{"malformed": "json"}', content_type='application/json')
 
         self.assertEqual(422, res.status_code)
@@ -121,9 +121,17 @@ class TriviaTestCase(unittest.TestCase):
         res = self.client().post('/questions', data=data, content_type='application/json')
 
         self.assertEqual(200, res.status_code)
-
         self.assertTrue(res.get_json().get('success'))
 
+    def test_delet_question_success(self):
+        res = self.client().delete('/questions/5')
+
+        self.assertEqual(200, res.status_code)
+        self.assertTrue(res.get_json().get('success'))
+
+    def test_delet_question_404_not_found_for_id(self):
+        res = self.client().delete('/questions/100')
+        self.assert_404_true(res)
 
     # Helper function to assert all categories are in the json response
     def assert_categories_equal(self, json):

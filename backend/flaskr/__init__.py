@@ -1,3 +1,5 @@
+from crypt import methods
+from uu import Error
 from flask import (
     Flask,
     request,
@@ -78,15 +80,31 @@ def create_app(test_config=None):
             
 
     """
-    @TODO:
     Create an endpoint to DELETE question using a question ID.
 
     TEST: When you click the trash icon next to a question, the question will be removed.
     This removal will persist in the database and when you refresh the page.
     """
+    @app.route('/questions/<int:id>', methods=['DELETE'])
+    def delete_question_by_id(id: int):
+        error = None
+        try:
+            question = Question.query.filter(Question.id == id).one_or_none()
+            if question is None:
+                error = 404
+            else:
+                question.delete()
+        except:
+            error = 500
+            db.session.rollback()
+        finally:
+            db.session.close()
+            if isinstance(error, int):
+                abort(error)
+            else:
+                return jsonify({"success": True})
 
     """
-    @TODO:
     Create an endpoint to POST a new question,
     which will require the question and answer text,
     category, and difficulty score.
@@ -122,15 +140,13 @@ def create_app(test_config=None):
             else:
                 try:
                     question : Question = json.loads(json.dumps(body), cls=QuestionDecoder)
-                    
                     question.insert()
                     return jsonify({"success": True})
-                except Exception as e:
+                except:
+                    db.session.rollback()
                     abort(422)
-                
                 finally:
                     db.session.close()
-
         else:
             abort(400)
 
@@ -152,7 +168,6 @@ def create_app(test_config=None):
             return questions
 
     """
-    @TODO:
     Create a POST endpoint to get questions to play the quiz.
     This endpoint should take category and previous question parameters
     and return a random questions within the given category,
