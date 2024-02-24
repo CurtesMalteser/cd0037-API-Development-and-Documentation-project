@@ -1,5 +1,5 @@
-from crypt import methods
-from uu import Error
+import random
+from unicodedata import category
 from flask import (
     Flask,
     request,
@@ -177,7 +177,38 @@ def create_app(test_config=None):
     one question at a time is displayed, the user is allowed to answer
     and shown whether they were correct or not.
     """
+    @app.route('/quizzes', methods=['POST'])
+    def random_question():
+        if (request.is_json):
+            body = request.get_json()
+            previous_questions = body['previous_questions']
 
+            if previous_questions is None:
+                abort(422)
+
+            category_id = body['quiz_category']['id']
+            if category_id is None:
+                abort(422)
+
+            questions = Question.query.order_by(Question.id).all()
+
+            if int(category_id) > 0:
+                questions = [question for question in questions if str(question.category) == category_id]
+                questions = [question for question in questions if question.id not in previous_questions]
+
+            question = None
+
+            if len(questions) > 0:
+                question = random.choice(questions).format()
+
+
+            return jsonify({
+                "previousQuestions": body['previous_questions'],
+                "question": question,
+                "success": True
+                })
+        else:
+            abort(400)
     """
     Create error handlers for all expected errors
     including 404 and 422.
