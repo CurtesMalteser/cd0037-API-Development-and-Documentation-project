@@ -76,3 +76,18 @@ class Category(db.Model):
             'id': self.id,
             'type': self.type
             }
+    
+
+class QuestionDecoder(json.JSONDecoder):
+
+    def __init__(self, *args, **kwargs):
+        json.JSONDecoder.__init__(self, object_hook=self.object_hook, *args, **kwargs)
+
+    def object_hook(self, dct):
+        return Question(
+            question=dct['question'],
+            answer=dct['answer'],
+            category=dct['category'],
+            difficulty=dct['difficulty']
+            )
+  

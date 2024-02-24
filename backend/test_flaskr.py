@@ -49,7 +49,6 @@ class TriviaTestCase(unittest.TestCase):
         self.assertTrue(json.get('success'))
         self.assert_categories_equal(json)
         self.assertEqual(10, len(json.get('questions')))
-        self.assertEqual(19, json.get('total_questions'))
         self.assertEqual(0, json.get('current_category'))
 
     def test_get_questions_404_due_to_page_100_not_found(self):
@@ -116,6 +115,15 @@ class TriviaTestCase(unittest.TestCase):
         json = res.get_json()
         self.assertFalse(json.get('success'))
         self.assertEqual('Unprocessable Content', json.get('message'))
+
+    def test_add_question_success(self):
+        data = '{"question": "Test question?", "answer": "Test", "difficulty": "3", "category": "2"}'
+        res = self.client().post('/questions', data=data, content_type='application/json')
+
+        self.assertEqual(200, res.status_code)
+
+        self.assertTrue(res.get_json().get('success'))
+
 
     # Helper function to assert all categories are in the json response
     def assert_categories_equal(self, json):

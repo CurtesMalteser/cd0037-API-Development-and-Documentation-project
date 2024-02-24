@@ -1,8 +1,18 @@
-from flask import Flask, request, abort, jsonify
+from flask import (
+    Flask,
+    request,
+    abort,
+    jsonify,
+    )
 from flask_cors import CORS
-from models import Question
+from models import (
+    Question,
+    QuestionDecoder,
+    db,
+    setup_db,
+    )
+import json
 
-from models import setup_db
 from request_utils import *
 
 def create_app(test_config=None):
@@ -101,15 +111,26 @@ def create_app(test_config=None):
             body = request.get_json()
             search = body.get('searchTerm')
 
-            if search is None:
-                abort(422)
+            if isinstance(search, str):
 
-            query = Question.query.filter(Question.question.ilike('%{}%'.format(search))).order_by(Question.id).all()
-            questions = paginate_questions_or_none(request, query)
-            if questions is None:
-                abort(404)
+                query = Question.query.filter(Question.question.ilike('%{}%'.format(search))).order_by(Question.id).all()
+                questions = paginate_questions_or_none(request, query)
+                if questions is None:
+                    abort(404)
+                else:
+                    return questions
             else:
-                return questions
+                try:
+                    question : Question = json.loads(json.dumps(body), cls=QuestionDecoder)
+                    
+                    question.insert()
+                    return jsonify({"success": True})
+                except Exception as e:
+                    abort(422)
+                
+                finally:
+                    db.session.close()
+
         else:
             abort(400)
 
