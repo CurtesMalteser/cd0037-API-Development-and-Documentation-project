@@ -97,17 +97,19 @@ def create_app(test_config=None):
     """
     @app.route('/questions', methods=['POST'])
     def search_questions():
-        content_type = request.headers.get('Content-Type')
-        if ('application/json' in str(content_type)):
-                body = request.get_json()
-                search = body.get('searchTerm')
+        if (request.is_json):
+            body = request.get_json()
+            search = body.get('searchTerm')
 
-                query = Question.query.filter(Question.question.ilike('%{}%'.format(search))).order_by(Question.id).all()
-                questions = paginate_questions_or_none(request, query)
-                if questions is None:
-                    abort(404)
-                else:
-                    return questions
+            if search is None:
+                abort(422)
+
+            query = Question.query.filter(Question.question.ilike('%{}%'.format(search))).order_by(Question.id).all()
+            questions = paginate_questions_or_none(request, query)
+            if questions is None:
+                abort(404)
+            else:
+                return questions
         else:
             abort(400)
 
@@ -141,7 +143,6 @@ def create_app(test_config=None):
     """
 
     """
-    @TODO:
     Create error handlers for all expected errors
     including 404 and 422.
     """
@@ -160,7 +161,15 @@ def create_app(test_config=None):
             "error": 404,
             "message": "Not found",
             }), 404
- 
+
+    @app.errorhandler(422)
+    def unprocessable(error):
+        return jsonify({
+            "success": False, 
+            "error": 422,
+            "message": "Unprocessable Content",
+            }), 422
+
     @app.errorhandler(500)
     def internal_error(error):
         return jsonify({
