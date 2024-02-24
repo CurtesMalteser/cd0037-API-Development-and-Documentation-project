@@ -37,6 +37,7 @@ class TriviaTestCase(unittest.TestCase):
         json = res.get_json()
 
         self.assert_categories_equal(json)
+        self.assertTrue(json.get('success'))
 
     def test_get_questions_success(self):
         res = self.client().get('/questions?page=1')
@@ -88,6 +89,26 @@ class TriviaTestCase(unittest.TestCase):
 
         self.assert_404_true(res)
 
+    def test_search_questions_success(self):
+        res = self.client().post('/questions', data='{"searchTerm": "tom"}', content_type='application/json')
+
+        self.assertEqual(200, res.status_code)
+        json = res.get_json()
+
+        self.assertTrue(json.get('success'))
+        self.assert_categories_equal(json)
+        self.assertEqual(1, len(json.get('questions')))
+        self.assertEqual(1, json.get('total_questions'))
+        self.assertEqual(0, json.get('current_category'))
+
+    def test_search_questions_400_missing_content_type_application_json_header(self):
+        res = self.client().post('/questions', data='{"searchTerm": "tom"}')
+        self.assert_400_true(res)
+
+    def test_search_questions_404_questions_found_for_given_search_term(self):
+        res = self.client().post('/questions', data='{"searchTerm": "noSearchTermMatches"}', content_type='application/json')
+        self.assert_404_true(res)
+
     # Helper function to assert all categories are in the json response
     def assert_categories_equal(self, json):
         actual_categories = json.get('categories')
@@ -103,11 +124,20 @@ class TriviaTestCase(unittest.TestCase):
 
         self.assertEqual(expected_categories, actual_categories)
 
+    # Helper function to assert 404 and json response is correct
     def assert_404_true(self, res):
         self.assertEqual(404, res.status_code)
         json = res.get_json()
         self.assertFalse(json.get('success'))
         self.assertEqual('Not found', json.get('message'))
+
+        # Helper function to assert 400 and json response is correct
+    def assert_400_true(self, res):
+        self.assertEqual(400, res.status_code)
+        json = res.get_json()
+        self.assertFalse(json.get('success'))
+        self.assertEqual('Bad request', json.get('message'))
+
 
 # Make the tests conveniently executable
 if __name__ == "__main__":

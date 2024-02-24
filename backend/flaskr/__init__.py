@@ -1,5 +1,6 @@
 from flask import Flask, request, abort, jsonify
 from flask_cors import CORS
+from models import Question
 
 from models import setup_db
 from request_utils import *
@@ -38,7 +39,10 @@ def create_app(test_config=None):
         if categories is None:
                 abort(400)
         else:
-            return jsonify({'categories': categories})
+            return jsonify({
+                'categories': categories,
+                'success': True
+                })
             
 
     """
@@ -54,7 +58,8 @@ def create_app(test_config=None):
     """
     @app.route('/questions')
     def get_questions():
-        questions = paginate_questions_or_none(request)
+        query=Question.query.order_by(Question.id).all()
+        questions = paginate_questions_or_none(request, query)
     
         if questions is None:
             abort(404)
@@ -82,7 +87,6 @@ def create_app(test_config=None):
     """
 
     """
-    @TODO:
     Create a POST endpoint to get questions based on a search term.
     It should return any questions for whom the search term
     is a substring of the question.
@@ -91,6 +95,21 @@ def create_app(test_config=None):
     only question that include that string within their question.
     Try using the word "title" to start.
     """
+    @app.route('/questions', methods=['POST'])
+    def search_questions():
+        content_type = request.headers.get('Content-Type')
+        if ('application/json' in str(content_type)):
+                body = request.get_json()
+                search = body.get('searchTerm')
+
+                query = Question.query.filter(Question.question.ilike('%{}%'.format(search))).order_by(Question.id).all()
+                questions = paginate_questions_or_none(request, query)
+                if questions is None:
+                    abort(404)
+                else:
+                    return questions
+        else:
+            abort(400)
 
     """
     Create a GET endpoint to get questions based on category.
@@ -101,7 +120,8 @@ def create_app(test_config=None):
     """
     @app.route('/categories/<int:id>/questions')
     def get_questions_by_category(id: int):
-        questions = paginate_questions_or_none(request, category_id=id)
+        query = Question.query.filter(Question.category == id).order_by(Question.id).all()
+        questions = paginate_questions_or_none(request, category_id=id, query=query)
     
         if questions is None:
             abort(404)
