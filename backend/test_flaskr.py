@@ -1,10 +1,12 @@
 import unittest
 from flaskr import create_app
+import json
 
 import os
 username = os.environ.get('USER', os.environ.get('USERNAME'))
 database_name = "trivia_test"
 database_path = "postgresql://{}:{}@{}/{}".format(username, username,'localhost:5432', database_name)
+
 
 from models import db, Question
 
@@ -100,7 +102,7 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(1, json.get('total_questions'))
         self.assertEqual(0, json.get('current_category'))
 
-    def test_search_questions_400_missing_content_type_application_json_header(self):
+    def test_search_questions_400_missing_content_type_application_json(self):
         res = self.client().post('/questions', data='{"searchTerm": "tom"}')
         self.assert_400_true(res)
 
@@ -110,11 +112,7 @@ class TriviaTestCase(unittest.TestCase):
 
     def test_search_questions_422_questions_not_found_for_given_search_term(self):
         res = self.client().post('/questions', data='{"malformed": "json"}', content_type='application/json')
-
-        self.assertEqual(422, res.status_code)
-        json = res.get_json()
-        self.assertFalse(json.get('success'))
-        self.assertEqual('Unprocessable Content', json.get('message'))
+        self.assert_422_true(res)
 
     def test_add_question_success(self):
         data = '{"question": "Test question?", "answer": "Test", "difficulty": "3", "category": "2"}'
@@ -123,15 +121,62 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(200, res.status_code)
         self.assertTrue(res.get_json().get('success'))
 
-    def test_delet_question_success(self):
+    def test_delete_question_success(self):
         res = self.client().delete('/questions/5')
 
         self.assertEqual(200, res.status_code)
         self.assertTrue(res.get_json().get('success'))
 
-    def test_delet_question_404_not_found_for_id(self):
+    def test_delete_question_404_not_found_for_id(self):
         res = self.client().delete('/questions/100')
         self.assert_404_true(res)
+
+    def test_post_quizzes_success(self):
+        previous_questions = list([5, 9, 2])
+        category_id = 1
+        data = json.dumps({"previous_questions": previous_questions, "quiz_category": {"id": category_id}}) 
+        res = self.client().post('/quizzes', data=data, content_type='application/json')
+
+        self.assertEqual(200, res.status_code)
+        json_response = res.get_json()
+
+        self.assertTrue(json_response['success'])
+        self.assertEqual(previous_questions, json_response['previousQuestions'])
+        self.assertIsNotNone(json_response['question'])
+        self.assertIsNotNone(json_response['question']['id'])
+        self.assertIsNotNone(json_response['question']['answer'])
+        self.assertIsNotNone(json_response['question']['difficulty'])
+        self.assertEqual(category_id, json_response['question']['category'])
+        self.assertIsNotNone(json_response['question']['question'])
+
+    def test_post_quizzes_sport_category_returns_no_question_after_answer_all_questions(self):
+        previous_questions = list([10, 11])
+        category_id = 6
+        data = json.dumps({"previous_questions": previous_questions, "quiz_category": {"id": category_id}}) 
+        res = self.client().post('/quizzes', data=data, content_type='application/json')
+
+        self.assertEqual(200, res.status_code)
+        json_response = res.get_json()
+
+        self.assertTrue(json_response['success'])
+        self.assertEqual(previous_questions, json_response['previousQuestions'])
+        self.assertIsNone(json_response['question'])
+
+    def test_post_quizzes__400_missing_content_type_application_json(self):
+        res = self.client().post('/quizzes', data='{"previous_questions": [1, 2, 3], "quiz_category": {"id": 1}}')
+        self.assert_400_true(res)
+
+    def test_post_quizzes_422_malformed_json(self):
+        res = self.client().post('/quizzes', data='{"malformed": "json"}', content_type='application/json')
+        self.assert_422_true(res)
+
+    def test_post_quizzes__422_missing_category_id(self):
+        res = self.client().post('/quizzes', data='{"previous_questions": [1, 2, 3]}', content_type='application/json')
+        self.assert_422_true(res)
+
+    def test_post_quizzes__422_missing_previous_questions(self):
+        res = self.client().post('/quizzes', data='{"quiz_category": {"id": 1}}', content_type='application/json')
+        self.assert_422_true(res)
 
     # Helper function to assert all categories are in the json response
     def assert_categories_equal(self, json):
@@ -162,6 +207,13 @@ class TriviaTestCase(unittest.TestCase):
         self.assertFalse(json.get('success'))
         self.assertEqual('Bad request', json.get('message'))
 
+    # Helper function to assert 422 and json response is correct
+    def assert_422_true(self, res):
+        self.assertEqual(422, res.status_code)
+        json = res.get_json()
+        self.assertFalse(json.get('success'))
+        self.assertEqual('Unprocessable Content', json.get('message'))
+        
 
 # Make the tests conveniently executable
 if __name__ == "__main__":

@@ -181,19 +181,26 @@ def create_app(test_config=None):
     def random_question():
         if (request.is_json):
             body = request.get_json()
-            previous_questions = body['previous_questions']
+
+            previous_questions = body.get('previous_questions')
 
             if previous_questions is None:
                 abort(422)
 
-            category_id = body['quiz_category']['id']
+            category = body.get('quiz_category')
+
+            if category is None:
+                abort(422)
+
+            category_id = int(category.get('id'))
+
             if category_id is None:
                 abort(422)
 
             questions = Question.query.order_by(Question.id).all()
 
             if int(category_id) > 0:
-                questions = [question for question in questions if str(question.category) == category_id]
+                questions = [question for question in questions if question.category == category_id]
                 questions = [question for question in questions if question.id not in previous_questions]
 
             question = None
