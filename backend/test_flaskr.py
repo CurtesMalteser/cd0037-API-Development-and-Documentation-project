@@ -115,7 +115,7 @@ class TriviaTestCase(unittest.TestCase):
         self.assert_422_true(res)
 
     def test_add_question_success(self):
-        data = '{"question": "Test question?", "answer": "Test", "difficulty": "3", "category": "2"}'
+        data = '{"question": "Test question?", "answer": "Test", "difficulty": 3, "category": 2}'
         res = self.client().post('/questions', data=data, content_type='application/json')
 
         self.assertEqual(200, res.status_code)
