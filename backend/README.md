@@ -112,6 +112,7 @@ chmod +x run_test.sh
 
 ## Endpoints documentation
 
+### Get categories
 `GET '/categories'`
 
 - Fetches a dictionary of categories in which the keys are the ids and the value is the corresponding string of the category
@@ -125,22 +126,95 @@ chmod +x run_test.sh
   "3": "Geography",
   "4": "History",
   "5": "Entertainment",
-  "6": "Sports"
+  "6": "Sports",
+  "success": true
 }
 ```
 
+### Get questions
 `GET '/questions'`
 `GET '/questions?page=<int>'`
 
 - Fetches a dictionary which contains a dictionary of categories in which the keys are the ids and the value is the corresponding string of the category, a list of questions, number of total questions, current category, and a key success. The list of questions is paginated, where `10` questions are returned per page.
 - Request Arguments:
   * optional `page` of type int, where `1` is the default page
-- Returns: An object with keys:
-  * key `categories`, that contains an object of `id: category_string`
-  * key `current_category` of type int, where `0` represents all categories
-  * key `questions` of type list of [Question](#question-object-json) object
-  * key `success` of type boolean `true` if request was successful
-  * key `total_questions` of type int, where the total amount of questions is returned
+- Returns: A [Questions object json](#questions-object-json)
+
+### Delete question
+`DELETE '/questions/<int:id>'`
+
+- Deletes a question from the database
+- Request Arguments:
+  * `id` of type int not null
+- Returns: An object with key `success` of type boolean `true` if request was successful
+  
+```json
+{
+  "success": true
+}
+```
+
+### Add question
+`POST '/questions'`
+
+- Adds a question to the database
+
+- Request Arguments:
+  * key `question` of type string not null
+  * key `answer` of type string not null
+  * key `category` of type int not null
+  * key `difficulty` of type int not null
+
+``` json
+{
+  "question": "What movie earned Tom Hanks his third straight Oscar nomination, in 1996?",
+  "answer": "Apollo 13",
+  "category": 5,
+  "difficulty": 4
+}
+```
+
+- Returns: An object with key `success` of type boolean `true` if request was successful
+
+```json
+{
+  "success": true
+}
+```
+
+### Search questions
+`POST '/questions'`
+
+- Fetches a list of questions that contain the search term
+- Request Arguments:
+  * key `searchTerm` of type string not null
+- Returns: A [Questions object json](#questions-object-json)
+  * key `current_category` is `0` represents all categories, and search does not filter by category
+
+## Question object json
+- key `answer` of type string not null
+- key `category` of type int not null
+- key `difficulty` of type int not null
+- key `id` of type int not null
+- key `question` of type string not null
+
+```json
+{
+  "answer": "Apollo 13", 
+  "category": 5, 
+  "difficulty": 4, 
+  "id": 2, 
+  "question": "What movie earned Tom Hanks his third straight Oscar nomination, in 1996?"
+}
+```
+
+## Questions object json
+
+- key `categories`, that contains an object of `id: category_string`
+- key `current_category` of type int, where `0` represents all categories
+- key `questions` of type list of [Question](#question-object-json) object
+- key `success` of type boolean `true` if request was successful
+- key `total_questions` of type int, where the total amount of questions is returned
 
 ```json
 {
@@ -230,20 +304,40 @@ chmod +x run_test.sh
 }
 ```
 
-## Question object json
-- key `answer` of type string not null
-- key `category` of type int not null
-- key `difficulty` of type int not null
-- key `id` of type int not null
-- key `question` of type string not null
+## Expected errors
 
+### 400: Bad request
 ```json
 {
-  "answer": "Apollo 13", 
-  "category": 5, 
-  "difficulty": 4, 
-  "id": 2, 
-  "question": "What movie earned Tom Hanks his third straight Oscar nomination, in 1996?"
+  "error": 400,
+  "message": "Bad request",
+  "success": false
 }
 ```
 
+### 404: Not found
+```json
+{
+  "error": 404,
+  "message": "Not found",
+  "success": false
+}
+```
+
+### 422: Unprocessable
+```json
+{
+  "error": 422,
+  "message": "Unprocessable Content",
+  "success": false
+}
+```
+
+### 500: Internal server error
+```json
+{
+  "error": 500,
+  "message": "Internal server error",
+  "success": false
+}
+```

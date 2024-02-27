@@ -124,7 +124,7 @@ def create_app(test_config=None):
     Try using the word "title" to start.
     """
     @app.route('/questions', methods=['POST'])
-    def search_questions():
+    def add_or_search_questions():
         if (request.is_json):
             body = request.get_json()
             search = body.get('searchTerm')

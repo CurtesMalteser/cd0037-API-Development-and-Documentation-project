@@ -84,10 +84,30 @@ class QuestionDecoder(json.JSONDecoder):
         json.JSONDecoder.__init__(self, object_hook=self.object_hook, *args, **kwargs)
 
     def object_hook(self, dct):
+        question = dct.get('question')
+
+        if question is None or question == '':
+            raise ValueError('question is required')
+
+        answer = dct.get('answer')
+
+        if answer is None or answer == '':
+            raise ValueError('answer is required')
+
+        category = dct.get('category')
+
+        if category is None or category == '':
+            raise ValueError('category is required')
+
+        difficulty = dct.get('difficulty')
+
+        if difficulty is None or difficulty == '' or difficulty < 1 or difficulty > 5:
+            raise ValueError('difficulty is required')
+
         return Question(
-            question=dct['question'],
-            answer=dct['answer'],
-            category=dct['category'],
-            difficulty=dct['difficulty']
+            question= question,
+            answer= answer,
+            category= category,
+            difficulty= difficulty
             )
   
