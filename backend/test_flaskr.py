@@ -3,9 +3,8 @@ from flaskr import create_app
 import json
 
 import os
-username = os.environ.get('USER', os.environ.get('USERNAME'))
-database_name = "trivia_test"
-database_path = "postgresql://{}:{}@{}/{}".format(username, username,'localhost:5432', database_name)
+database_name = os.environ['TRIVIA_TEST_DB_NAME']
+database_path = os.environ['TRIVIA_TEST_DB_PATH']
 
 
 from models import db, Question
