@@ -17,6 +17,7 @@ from models import (
 
 from request_utils import *
 
+
 def create_app(test_config=None):
     """Create and configure the app"""
     app = Flask(__name__)
@@ -25,12 +26,11 @@ def create_app(test_config=None):
         setup_db(app)
     else:
         database_path = str(test_config.get('SQLALCHEMY_DATABASE_URI'))
-        setup_db(app, database_path = database_path)
+        setup_db(app, database_path=database_path)
 
-
-    # Set up CORS. Allow '*' for origins. Delete the sample route after completing the TODOs
+    # Set up CORS. Allow '*' for origins.
+    # Delete the sample route after completing the TODOs
     cors = CORS(app, resources={r"*": {"origins": "*"}})
-
 
     # Use the after_request decorator to set Access-Control-Allow
     @app.after_request
