@@ -1,7 +1,8 @@
-import os
+"""Models for the trivia app"""
+from itertools import tee
+import json
 from sqlalchemy import Column, String, Integer
 from flask_sqlalchemy import SQLAlchemy
-import json
 
 import os
 database_name = os.environ['TRIVIA_DB_NAME']
@@ -9,22 +10,17 @@ database_path = os.environ['TRIVIA_DB_PATH']
 
 db = SQLAlchemy()
 
-"""
-setup_db(app)
-    binds a flask application and a SQLAlchemy service
-"""
+
 def setup_db(app, database_path=database_path):
+    """Binds a flask application and a SQLAlchemy service"""
     app.config["SQLALCHEMY_DATABASE_URI"] = database_path
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     db.app = app
     db.init_app(app)
     db.create_all()
 
-"""
-Question
-
-"""
 class Question(db.Model):
+    """Question"""
     __tablename__ = 'questions'
 
     id = Column(Integer, primary_key=True)
@@ -59,11 +55,8 @@ class Question(db.Model):
             'difficulty': self.difficulty
             }
 
-"""
-Category
-
-"""
 class Category(db.Model):
+    """Category"""
     __tablename__ = 'categories'
 
     id = Column(Integer, primary_key=True)
@@ -80,6 +73,7 @@ class Category(db.Model):
     
 
 class QuestionDecoder(json.JSONDecoder):
+    """QuestionDecoder"""
 
     def __init__(self, *args, **kwargs):
         json.JSONDecoder.__init__(self, object_hook=self.object_hook, *args, **kwargs)
@@ -95,9 +89,22 @@ class QuestionDecoder(json.JSONDecoder):
         if answer is None or answer == '':
             raise ValueError('answer is required')
 
-        category = int(dct.get('category'))
+        category = -1
 
-        difficulty = int(dct.get('difficulty'))
+        try:
+            category = int(dct.get('category'))
+        except Exception as exc:
+            raise ValueError('category is required') from exc
+        
+        if category == -1:
+            raise ValueError('category is required')
+
+        difficulty = -1
+
+        try:
+            difficulty = int(dct.get('difficulty'))
+        except Exception as exc:
+            raise ValueError('difficulty is required') from exc
 
         if difficulty < 1 or difficulty > 5:
             raise ValueError('difficulty is required')
