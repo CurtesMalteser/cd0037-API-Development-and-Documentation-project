@@ -23,9 +23,6 @@ def get_categories_or_none(category_id = None):
 
 def paginate_questions_or_none(request, query, category_id = None):
     page = request.args.get('page', 1, type=int)
-    
-    start = (page - 1) * QUESTIONS_PER_PAGE
-    end = start + QUESTIONS_PER_PAGE
 
     categories = get_categories_or_none(category_id)
 
@@ -34,18 +31,20 @@ def paginate_questions_or_none(request, query, category_id = None):
 
     questions = []
 
+    total_questions = 0
+    
     try:
-        questions = query
+        questions = query.paginate(page, QUESTIONS_PER_PAGE, False).items
+        total_questions = query.count()
     except Exception as e:
+        print('🧨 error: {}'.format(e))
         abort(500)
 
     if questions is None:
         abort(400)
 
-    total_questions = len(questions)
-
     questions = map(lambda  question: question.format(), questions)
-    questions = list(questions)[start:end]
+    questions = list(questions)
 
 
     if len(questions) > 0:

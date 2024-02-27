@@ -1,5 +1,4 @@
 import random
-from unicodedata import category
 from flask import (
     Flask,
     request,
@@ -70,7 +69,7 @@ def create_app(test_config=None):
     """
     @app.route('/questions')
     def get_questions():
-        query=Question.query.order_by(Question.id).all()
+        query=Question.query.order_by(Question.id)
         questions = paginate_questions_or_none(request, query)
     
         if questions is None:
@@ -94,7 +93,8 @@ def create_app(test_config=None):
                 error = 404
             else:
                 question.delete()
-        except:
+        except Exception as e:
+            print('🧨 error: {}'.format(e))
             error = 500
             db.session.rollback()
         finally:
@@ -130,8 +130,7 @@ def create_app(test_config=None):
             search = body.get('searchTerm')
 
             if isinstance(search, str):
-
-                query = Question.query.filter(Question.question.ilike('%{}%'.format(search))).order_by(Question.id).all()
+                query = Question.query.filter(Question.question.ilike('%{}%'.format(search))).order_by(Question.id)
                 questions = paginate_questions_or_none(request, query)
                 if questions is None:
                     abort(404)
@@ -142,7 +141,7 @@ def create_app(test_config=None):
                     question : Question = json.loads(json.dumps(body), cls=QuestionDecoder)
                     question.insert()
                     return jsonify({"success": True})
-                except:
+                except Exception as e:
                     db.session.rollback()
                     abort(422)
                 finally:
@@ -159,7 +158,7 @@ def create_app(test_config=None):
     """
     @app.route('/categories/<int:id>/questions')
     def get_questions_by_category(id: int):
-        query = Question.query.filter(Question.category == id).order_by(Question.id).all()
+        query = Question.query.filter(Question.category == id).order_by(Question.id)
         questions = paginate_questions_or_none(request, category_id=id, query=query)
     
         if questions is None:
@@ -197,11 +196,19 @@ def create_app(test_config=None):
             if category_id is None:
                 abort(422)
 
-            questions = Question.query.order_by(Question.id).all()
-
+            query = None
             if int(category_id) > 0:
-                questions = [question for question in questions if question.category == category_id]
-                questions = [question for question in questions if question.id not in previous_questions]
+                query = db.session.query(Question).filter(
+                        Question.id.notin_(previous_questions)
+                    ).filter(
+                        Question.category == category_id
+                    ).order_by(Question.id)
+                db.session.close()
+            else:
+                query = Question.query.order_by(Question.id)
+
+            questions = query.all()
+                
 
             question = None
 

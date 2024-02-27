@@ -95,14 +95,11 @@ class QuestionDecoder(json.JSONDecoder):
         if answer is None or answer == '':
             raise ValueError('answer is required')
 
-        category = dct.get('category')
+        category = int(dct.get('category'))
 
-        if category is None or category == '':
-            raise ValueError('category is required')
+        difficulty = int(dct.get('difficulty'))
 
-        difficulty = dct.get('difficulty')
-
-        if difficulty is None or difficulty == '' or difficulty < 1 or difficulty > 5:
+        if difficulty < 1 or difficulty > 5:
             raise ValueError('difficulty is required')
 
         return Question(

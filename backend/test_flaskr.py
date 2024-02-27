@@ -43,7 +43,6 @@ class TriviaTestCase(unittest.TestCase):
     def test_get_questions_success(self):
         res = self.client().get('/questions?page=1')
 
-
         self.assertEqual(200, res.status_code)
         json = res.get_json()
 
@@ -114,11 +113,22 @@ class TriviaTestCase(unittest.TestCase):
         self.assert_422_true(res)
 
     def test_add_question_success(self):
-        data = '{"question": "Test question?", "answer": "Test", "difficulty": 3, "category": 2}'
+        data = '{"question": "Test question?", "answer": "Test", "difficulty": "3", "category": "2"}'
         res = self.client().post('/questions', data=data, content_type='application/json')
 
         self.assertEqual(200, res.status_code)
         self.assertTrue(res.get_json().get('success'))
+
+    def test_add_question_422_difficult_or_category_are_not_int(self):
+        data = '{"question": "Test question?", "answer": "Test", "difficulty": "3", "category": "notInt"}'
+        res = self.client().post('/questions', data=data, content_type='application/json')
+
+        self.assert_422_true(res)
+
+        data = '{"question": "Test question?", "answer": "Test", "difficulty": "notInt", "category": "2"}'
+        res = self.client().post('/questions', data=data, content_type='application/json')
+
+        self.assert_422_true(res)
 
     def test_delete_question_success(self):
         res = self.client().delete('/questions/5')
